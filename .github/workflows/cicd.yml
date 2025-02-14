@@ -52,7 +52,7 @@ jobs:
         id: gitChanges
         run: |
           git status
-          if [[-n "$(git status --porcelain | ./dist)" ]]; then
+          if [[ -n "$(git status --porcelain ./dist)" ]]; then
             echo "changes=true" >> $GITHUB_OUTPUT
           else
             echo "changes=false" >> $GITHUB_OUTPUT
