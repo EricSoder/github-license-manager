@@ -1,22 +1,21 @@
 name: GitHub License Manager
-description: Manages your license based products (Copilot, Advanced Security) and to bill them against the right Cost Center. Useful for splitting billing between organizations.
+description:
+  Manages your license based products (Copilot, Advanced Security) and to bill them
+  against the right Cost Center. Useful for splitting billing between organizations.
 author: Eric Söderqvist
-
 branding:
   icon: heart
   color: red
-
 inputs:
   github_token:
     description: GitHub Token with enterprise access.
     required: true
   cost_center:
-    description: The cost center to bill the license against. E.g "my-org Copilot Cost Center" or "my-org GHAS Cost Center".
+    description: The cost center to bill the license against.
     required: true
   team_name:
     description: The team to sync against the cost center.
     required: true
-
 runs:
   using: node20
   main: dist/index.js
