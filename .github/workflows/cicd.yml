@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           GH_HOST=$(echo ${{ github.server_url }} | awk -F[/:] '{print $4}')
-          gh auth login --hostname $GH_HOST --with-token <<< $GITHUB_TOKEN
+          gh auth login --hostname $GH_HOST --with-token <<< ${{ secrets.GITHUB_TOKEN }}
           if gh release view $VERSION; then
             gh release edit $VERSION --title "Release $VERSION" --notes "This is an automated release updated by the CI workflow." --latest
           else
