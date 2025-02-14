@@ -1,23 +1,21 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: GitHub License Manager
+description: Manages your license based products (Copilot, Advanced Security) and to bill them against the right Cost Center. Useful for splitting billing between organizations.
+author: Eric Söderqvist
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
   icon: heart
   color: red
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  github_token:
+    description: GitHub Token with enterprise access.
     required: true
-    default: '1000'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
+  cost_center:
+    description: The cost center to bill the license against. E.g "my-org Copilot Cost Center" or "my-org GHAS Cost Center".
+    required: true
+  team_name:
+    description: The team to sync against the cost center.
+    required: true
 
 runs:
   using: node20

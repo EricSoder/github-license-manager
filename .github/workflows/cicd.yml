@@ -1,0 +1,116 @@
+name: Continuous Integration and Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  actions: write
+  checks: write
+env:
+  VERSION: 1.0.${{ github.run_number }}
+
+jobs:
+  test-bundle-release:
+    name: TypeScript Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
+
+      - name: Check Format
+        id: npm-format-check
+        run: npm run format:check
+
+      - name: Lint
+        id: npm-lint
+        run: npm run lint
+
+      # - name: Test
+      #   id: npm-ci-test
+      #   run: npm run ci-test
+
+      - name: Build dist/ Directory
+        id: build
+        run: npm run bundle
+
+      - name: Check if new bundle is created and needs to be checked in
+        id: gitChanges
+        run: |
+          git status
+          if [[-n "$(git status --porcelain | ./dist)" ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.gitChanges.outputs.changes == 'true' && github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add ./dist
+          git commit -m "[skip ci] Bundle changes. Release $VERSION" "
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Major Version
+        shell: bash
+        run: |
+          if [[ $VERSION != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+          MAJOR_VERSION=$(echo "$VERSION" | awk -F[.-] '{print $1}')
+          echo "MAJOR_VERSION=$MAJOR_VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create or Update Release
+        shell: bash
+        run: |
+          GH_HOST=$(echo ${{ github.server_url }} | awk -F[/:] '{print $4}')
+          gh auth login --hostname $GH_HOST --with-token <<< $GITHUB_TOKEN
+          if gh release view $VERSION; then
+            gh release edit $VERSION --title "Release $VERSION" --notes "This is an automated release updated by the CI workflow." --latest
+          else
+            gh release create $VERSION ./action.yml --title "Release $VERSION" --notes "This is an automated release created by the CI workflow."
+          fi
+          if gh release view $MAJOR_VERSION; then
+            gh release edit $MAJOR_VERSION --title "Release $MAJOR_VERSION" --notes "This is an automated release updated by the CI workflow." --latest
+          else
+            gh release create $MAJOR_VERSION ./action.yml --title "Release $MAJOR_VERSION" --notes "This is an automated release created by the CI workflow."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create tags
+        shell: bash
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag $VERSION
+          git push origin $VERSION
+          git tag -fa $MAJOR_VERSION $VERSION -m "Update $MAJOR_VERSION tag to $VERSION"
+          git push origin $MAJOR_VERSION --force
+
+      - name: Warn if no new binaries are created
+        if: steps.gitChanges.outputs.changes == 'false'
+        run: echo "No new binaries are created. Nothing to release."
