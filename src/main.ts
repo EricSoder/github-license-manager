@@ -1,5 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { CostCenter, CostCentersResponse, Resource, TeamMember } from './types.js'
+
 const github_token: string = core.getInput('github_token')
 const octokit = github.getOctokit(github_token)
 
@@ -13,7 +15,7 @@ export async function run(): Promise<void> {
     const cost_center: string = core.getInput('cost_center')
     const team_name: string = core.getInput('team_name')
 
-    const costCenters = await octokit.request(
+    const costCentersResponse = await octokit.request(
       `GET /enterprises/${github.context.payload.enterprise?.name}/settings/billing/cost-centers`,
       {
         enterprise: github.context.payload.enterprise?.name,
@@ -25,8 +27,9 @@ export async function run(): Promise<void> {
 
     const costCenterUserList: string[] = []
 
-    costCenters.data.costCenters.forEach((costCenter: any) => {
-      costCenter.resources.forEach((resource: any) => {
+    const costCenters: CostCentersResponse = costCentersResponse.data
+    costCenters.costCenters.forEach((costCenter: CostCenter) => {
+      costCenter.resources.forEach((resource: Resource) => {
         if (resource.type === 'User') {
           costCenterUserList.push(resource.name)
           core.info(`User name: ${resource.name}`)
@@ -44,10 +47,10 @@ export async function run(): Promise<void> {
 
     const teamMemberList: string[] = []
 
-    teamMembers.data.forEach((member: any) => {
+    teamMembers.data.forEach((member: TeamMember) => {
       if (member.login) {
         teamMemberList.push(member.login)
-        core.info(`Team member name: ${member.title}`)
+        core.info(`Team member name: ${member.login}`)
       }
     })
 
