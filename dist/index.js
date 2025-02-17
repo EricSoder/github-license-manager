@@ -31230,50 +31230,62 @@ function requireGithub () {
 
 var githubExports = requireGithub();
 
+class CostCenterUsers {
+    costCenterId;
+    users;
+    constructor(costCenterId) {
+        if (costCenterId) {
+            this.costCenterId = costCenterId;
+        }
+        this.users = [];
+    }
+}
+
 const github_token = coreExports.getInput('github_token');
 const octokit = githubExports.getOctokit(github_token);
-/**
- * The main function for the action.
- *
- * @returns Resolves when the action is complete.
- */
 async function run() {
     try {
         const cost_center = coreExports.getInput('cost_center');
         const team_name = coreExports.getInput('team_name');
+        //Get all cost centers
         const costCentersResponse = await octokit.request(`GET /enterprises/${githubExports.context.payload.enterprise?.name}/settings/billing/cost-centers`, {
             enterprise: githubExports.context.payload.enterprise?.name,
             headers: {
                 'X-GitHub-Api-Version': '2022-11-28'
             }
         });
-        const costCenterUserList = [];
-        const costCenters = costCentersResponse.data;
+        const costCenterUsers = new CostCenterUsers();
+        const costCenters = costCentersResponse.data.properties;
+        //Extract the cost center id and users for the specified cost center
         costCenters.costCenters.forEach((costCenter) => {
-            costCenter.resources.forEach((resource) => {
-                if (resource.type === 'User') {
-                    costCenterUserList.push(resource.name);
-                    coreExports.info(`User name: ${resource.name}`);
-                }
-            });
+            if (costCenter.items.properties.name == cost_center) {
+                costCenterUsers.costCenterId = costCenter.items.properties.id;
+                costCenter.items.resources.forEach((resource) => {
+                    if (resource.items.properties.type === 'User') {
+                        costCenterUsers.users.push(resource.items.properties.name);
+                        coreExports.info(`User name: ${resource.items.properties.name}`);
+                    }
+                });
+            }
         });
+        //Get all team members for the specified team, e.g "Copilot-Team, GHAS-Team"
         const teamMembers = await octokit.request(`GET /orgs/${githubExports.context.payload.repository?.owner}/teams/${team_name}/members`, {
             org: githubExports.context.payload.repository?.owner,
             team_slug: team_name
         });
         const teamMemberList = [];
+        // Generate a list of team members
         teamMembers.data.forEach((member) => {
-            if (member.login) {
-                teamMemberList.push(member.login);
-                coreExports.info(`Team member name: ${member.login}`);
-            }
+            teamMemberList.push(member.login);
+            coreExports.info(`Team member name: ${member.login}`);
         });
-        const usersNotInCostCenter = teamMemberList.filter((member) => !costCenterUserList.includes(member));
-        //add users to cost center
+        // Generate a list of users not in the cost center
+        const usersNotInCostCenter = teamMemberList.filter((member) => !costCenterUsers.users.includes(member));
+        //Add the users that are not in the cost center
         for (const user of usersNotInCostCenter) {
-            await octokit.request(`PUT /enterprises/${githubExports.context.payload.enterprise?.name}/settings/billing/cost-centers/${cost_center}/resources`, {
+            await octokit.request(`PUT /enterprises/${githubExports.context.payload.enterprise?.name}/settings/billing/cost-centers/${costCenterUsers.costCenterId}/resources`, {
                 enterprise: githubExports.context.payload.enterprise?.name,
-                cost_center: cost_center,
+                cost_center: costCenterUsers.costCenterId,
                 resource: user,
                 resource_type: 'User',
                 headers: {
@@ -31281,10 +31293,11 @@ async function run() {
                 }
             });
         }
-        const usersNotInTeam = costCenterUserList.filter((member) => !teamMemberList.includes(member));
-        //remove users from cost center
+        // Generate a list of users not in the team
+        const usersNotInTeam = costCenterUsers.users.filter((member) => !teamMemberList.includes(member));
+        //Remove the users from the cost center that are not in the team
         for (const user of usersNotInTeam) {
-            await octokit.request(`DELETE /enterprises/${githubExports.context.payload.enterprise?.name}/settings/billing/cost-centers/${cost_center}/resources`, {
+            await octokit.request(`DELETE /enterprises/${githubExports.context.payload.enterprise?.name}/settings/billing/cost-centers/${costCenterUsers.costCenterId}/resources`, {
                 enterprise: githubExports.context.payload.enterprise?.name,
                 cost_center: cost_center,
                 resource: user,

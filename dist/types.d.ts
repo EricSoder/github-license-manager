@@ -1,11 +1,24 @@
 export interface Resource {
-    type: string;
-    name: string;
+    items: {
+        properties: {
+            type: string;
+            name: string;
+        };
+    };
+}
+export declare class CostCenterUsers {
+    costCenterId?: string;
+    users: string[];
+    constructor(costCenterId?: string);
 }
 export interface CostCenter {
-    id: string;
-    name: string;
-    resources: Resource[];
+    items: {
+        properties: {
+            name: string;
+            id: string;
+        };
+        resources: Resource[];
+    };
 }
 export interface CostCentersResponse {
     costCenters: CostCenter[];
