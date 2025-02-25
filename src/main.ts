@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import * as inputs from './inputs.js'
 import {
   CostCenter,
   CostCentersResponse,
@@ -8,14 +9,9 @@ import {
   CostCenterUsers
 } from './types.js'
 
-const github_token: string = core.getInput('github_token')
-const octokit = github.getOctokit(github_token)
-
 export async function run(): Promise<void> {
+  const octokit = github.getOctokit(inputs.GITHUB_TOKEN)
   try {
-    const cost_center: string = core.getInput('cost_center')
-    const team_name: string = core.getInput('team_name')
-
     //Get all cost centers
     const costCentersResponse = await octokit.request(
       `GET /enterprises/${github.context.payload.enterprise?.name}/settings/billing/cost-centers`,
@@ -32,7 +28,7 @@ export async function run(): Promise<void> {
 
     //Extract the cost center id and users for the specified cost center
     costCenters.costCenters.forEach((costCenter: CostCenter) => {
-      if (costCenter.items.properties.name == cost_center) {
+      if (costCenter.items.properties.name == inputs.COST_CENTER) {
         costCenterUsers.costCenterId = costCenter.items.properties.id
         costCenter.items.resources.forEach((resource: Resource) => {
           if (resource.items.properties.type === 'User') {
@@ -45,15 +41,15 @@ export async function run(): Promise<void> {
 
     //Get all team members for the specified team, e.g "Copilot-Team, GHAS-Team"
     const teamMembers = await octokit.request(
-      `GET /orgs/${github.context.payload.repository?.owner}/teams/${team_name}/members`,
+      `GET /orgs/${github.context.payload.repository?.owner}/teams/${inputs.TEAM_NAME}/members`,
       {
         org: github.context.payload.repository?.owner,
-        team_slug: team_name
+        team_slug: inputs.TEAM_NAME
       }
     )
 
-    const teamMemberList: string[] = []
     // Generate a list of team members
+    const teamMemberList: string[] = []
     teamMembers.data.forEach((member: TeamMember) => {
       teamMemberList.push(member.login)
       core.info(`Team member name: ${member.login}`)
@@ -91,7 +87,7 @@ export async function run(): Promise<void> {
         `DELETE /enterprises/${github.context.payload.enterprise?.name}/settings/billing/cost-centers/${costCenterUsers.costCenterId}/resources`,
         {
           enterprise: github.context.payload.enterprise?.name,
-          cost_center: cost_center,
+          cost_center: inputs.COST_CENTER,
           resource: user,
           resource_type: 'User',
           headers: {

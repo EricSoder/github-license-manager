@@ -1,7 +1,7 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
-  "version": "0.0.0",
+  "name": "Github License Manager",
+  "description": "A GitHub Action to manage Github Licenses on organization level",
+  "version": "1.0.0",
   "author": "",
   "type": "module",
   "private": true,
@@ -14,7 +14,11 @@
     "url": "https://github.com/actions/typescript-action/issues"
   },
   "keywords": [
-    "actions"
+    "Actions",
+    "Copilot",
+    "GitHub Advanced Security",
+    "Licenses",
+    "Cost Center"
   ],
   "exports": {
     ".": "./dist/index.js"
