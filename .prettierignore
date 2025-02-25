@@ -3,3 +3,5 @@
 dist/
 node_modules/
 coverage/
+licenses/
+.github/workflows/cicd.yml
