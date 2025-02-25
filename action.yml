@@ -1,9 +1,7 @@
 name: GitHub License Manager
-description: 
-  "Manages your license based products 
-  (Copilot, Advanced Security) and to bill them
-  against the right Cost Center. Useful for splitting 
-  billing between organizations."
+description:
+  'Manages your license based products (Copilot, Advanced Security) and to bill them
+  against the right Cost Center. Useful for splitting billing between organizations.'
 author: Eric Söderqvist
 branding:
   icon: heart
